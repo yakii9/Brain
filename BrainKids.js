@@ -12,11 +12,15 @@ var Bn = ( function(root, $, _) {
     subscribers: [],
     maintainSubs: [],
 
+    // 一些配置信息，比如说：可以接受的事件类型、可以转发的事件
+    triggerableEventType: [],
+    dispatchibleEventType: [],
+
     // 初始化对象的公共接口
     initialization: function() {},
 
     // 内部处理器的订阅/解除订阅的方法
-    on: function(e, method, options) {
+    on: function(e, method, options={}) {
       if (!this.processors[e.type] && !this.processors[e.type].length) {
         this.processors[e.type] = []
       }
@@ -25,7 +29,7 @@ var Bn = ( function(root, $, _) {
       return method
     },
 
-    off: function(e, method) {
+    off: function(e, method, options={}) {
       if (!method) {
         return delete this.processors[e.type]
       }
@@ -38,7 +42,7 @@ var Bn = ( function(root, $, _) {
     },
 
     // 其他对象的订阅/取消订阅的方法
-    listenTo: function(target) {
+    listenTo: function(target, options={}) {
       try {
         return target.subscribe(this)
       } catch (e) {
@@ -47,7 +51,13 @@ var Bn = ( function(root, $, _) {
       }
     },
 
-    stopListening: function(target) {
+    subscribe: function(subscriber) {
+      if (subscriber && subscriber !== this) {
+        return this.subscribers.push(subscriber)
+      }
+    },
+
+    stopListening: function(target, options={}) {
       if (!target) return null
 
       const self = this
@@ -61,6 +71,74 @@ var Bn = ( function(root, $, _) {
       )
 
       target.subscribers = temp
+    },
+
+    // 触发内部事件的触发器
+    trigger: function(e, context, options={}) {
+      if (!this.processors[e.type] || !this.processors[e.type].length) {
+        return false
+      }
+
+      this.evts[eventType].forEach(
+        function(listener) {
+          if ( listener.options.listenOnce && listener.invokenCounter > 0 ) {
+            return
+          }
+
+          switch (args.length) {
+            case 0:
+              listener.callback.call(context?context:null)
+              break
+            case 1:
+              listener.callback.call(context?context:null, args[0])
+              break
+            case 2:
+              listener.callback.call(context?context:null, args[0], args[1])
+              break
+            case 3:
+              listener.callback.call(context?context:null, args[0], args[1], args[2])
+              break
+            default:
+              listener.callback.apply(context?context:null, args)
+              break
+          }
+          listener.invokenCounter += 1
+        }
+      )
+      return true
+    },
+
+
+    // 触发外部事件的函数
+    dispatch: function(e, target=null, options={}) {
+      if (target === this) {
+        return false
+      }
+
+      if (target !== null) {
+        return target.router(e)
+      }
+
+      if (this.subscribers && this.subscribers.length) {
+        this.subscribers.forEach(function(s) {
+          s.router.call(null, e, target)
+        })
+        return true
+      }
+    },
+
+    // 处理外来事件的函数
+    router: function(e, target=null, options={}) {
+      var keysFortrigger = this.triggerableEventType.jion(' ')
+      var keysForDispatch = this.dispatchibleEventType.jion(' ')
+
+      if (keysForDispatch.indexOf(e.type) > -1) {
+        this.dispatch(e, target)
+      }
+
+      if (keysFortrigger.indexOf(e.type) > -1) {
+        this.trigger(e, target)
+      }
     }
 
 
