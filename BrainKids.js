@@ -35,7 +35,7 @@ var Bn = ( function(root, $, _) {
         if (idx<0) return false
         this.processors[e.type].splice(idx, 1)
       }
-    }
+    },
 
     // 其他对象的订阅/取消订阅的方法
     listenTo: function(target) {
@@ -45,7 +45,7 @@ var Bn = ( function(root, $, _) {
         console.log(e.type, e.message);
         return false
       }
-    }
+    },
 
     stopListening: function(target) {
       if (!target) return null
@@ -62,6 +62,8 @@ var Bn = ( function(root, $, _) {
 
       target.subscribers = temp
     }
+
+
   }
 
   return Brain
